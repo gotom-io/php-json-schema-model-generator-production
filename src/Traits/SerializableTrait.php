@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace PHPModelGenerator\Traits;
 
+use PHPModelGenerator\Attribute\JsonFieldName;
+
 /**
  * Provide methods to serialize generated models
  *
@@ -68,17 +70,37 @@ trait SerializableTrait
             );
         }
 
-        foreach (get_class_vars(get_class($this)) as $key => $value) {
-            if (in_array($key, $except) || strstr($key, '_') !== false) {
+        $reflection = new \ReflectionClass($this);
+
+        foreach ($reflection->getProperties() as $property) {
+            $key = $property->getName();
+
+            if (in_array($key, $except) || str_contains($key, '_')) {
                 continue;
+            }
+
+            $jsonKey = $key;
+            $attributes = $property->getAttributes(JsonFieldName::class);
+            if (!empty($attributes)) {
+                /** @var JsonFieldName $attr */
+                $attr = $attributes[0]->newInstance();
+                $jsonKey = $attr->name;
             }
 
             if ($customSerializer = $this->_getCustomSerializerMethod($key)) {
-                $modelData[$key] = $this->_getSerializedValue($this->{$customSerializer}(), $depth, $except);
+                $modelData[$jsonKey] = $this->_getSerializedValue(
+                    $this->{$customSerializer}(),
+                    $depth,
+                    $except
+                );
                 continue;
             }
 
-            $modelData[$key] = $this->_getSerializedValue($this->$key, $depth, $except);
+            $modelData[$jsonKey] = $this->_getSerializedValue(
+                $property->getValue($this),
+                $depth,
+                $except
+            );
         }
 
         return $this->resolveSerializationHook($modelData, $depth, $except);
