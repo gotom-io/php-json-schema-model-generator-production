@@ -75,10 +75,6 @@ trait SerializableTrait
         foreach ($reflection->getProperties() as $property) {
             $key = $property->getName();
 
-            if (in_array($key, $except) || str_contains($key, '_')) {
-                continue;
-            }
-
             $jsonKey = $key;
             $attributes = $property->getAttributes(JsonFieldName::class);
             if (!empty($attributes)) {
@@ -86,6 +82,11 @@ trait SerializableTrait
                 $attr = $attributes[0]->newInstance();
                 $jsonKey = $attr->name;
             }
+
+            if (in_array($jsonKey, $except) || str_contains($key, '_')) {
+                continue;
+            }
+
 
             if ($customSerializer = $this->_getCustomSerializerMethod($key)) {
                 $modelData[$jsonKey] = $this->_getSerializedValue(
