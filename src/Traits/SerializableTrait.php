@@ -6,6 +6,8 @@ namespace PHPModelGenerator\Traits;
 
 use PHPModelGenerator\Attribute\JsonFieldName;
 
+use stdClass;
+
 /**
  * Provide methods to serialize generated models
  *
@@ -33,7 +35,7 @@ trait SerializableTrait
             return false;
         }
 
-        return json_encode($this->toArray($except, $depth), $options, $depth);
+        return json_encode($this->_getValues($depth, $except, true), $options, $depth);
     }
 
     /**
@@ -42,7 +44,7 @@ trait SerializableTrait
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-        return $this->toArray();
+        return $this->_getValues(512, [], true);
     }
 
     /**
@@ -60,10 +62,25 @@ trait SerializableTrait
             return false;
         }
 
+        return $this->_getValues($depth, $except, false);
+    }
+
+    /**
+     * Get a representation of the current state
+     *
+     * @param array $except                provide a list of properties which shouldn't be contained in the resulting JSON.
+     *                                     eg. if you want to return an user model and don't want the password to be included
+     * @param int $depth                   the maximum level of object nesting. Must be greater than 0
+     * @param bool $emptyObjectsAsStdClass If set to true, the wrapping data structure for empty objects will be an stdClass. Array otherwise
+     *
+     * @return array|stdClass
+     */
+    private function _getValues(int $depth, array $except, bool $emptyObjectsAsStdClass)
+    {
         $depth--;
         $modelData = [];
 
-        if (isset($this->_skipNotProvidedPropertiesMap)) {
+        if (isset($this->_skipNotProvidedPropertiesMap, $this->_rawModelDataInput)) {
             $except = array_merge(
                 $except,
                 array_diff($this->_skipNotProvidedPropertiesMap, array_keys($this->_rawModelDataInput))
@@ -83,28 +100,25 @@ trait SerializableTrait
                 $jsonKey = $attr->name;
             }
 
-            if (in_array($jsonKey, $except) || str_contains($key, '_')) {
+            if (in_array($jsonKey, $except) || str_starts_with($key, '_') !== false) {
                 continue;
             }
-
 
             if ($customSerializer = $this->_getCustomSerializerMethod($key)) {
-                $modelData[$jsonKey] = $this->_getSerializedValue(
-                    $this->{$customSerializer}(),
-                    $depth,
-                    $except
-                );
+                $modelData[$jsonKey] = $this->_getSerializedValue($this->{$customSerializer}(), $depth, $except, $emptyObjectsAsStdClass);
                 continue;
             }
 
-            $modelData[$jsonKey] = $this->_getSerializedValue(
-                $property->getValue($this),
-                $depth,
-                $except
-            );
+            $modelData[$jsonKey] = $this->_getSerializedValue($property->getValue($this), $depth, $except, $emptyObjectsAsStdClass);
         }
 
-        return $this->resolveSerializationHook($modelData, $depth, $except);
+        $data = $this->resolveSerializationHook($modelData, $depth, $except);
+
+        if ($emptyObjectsAsStdClass && empty($data)) {
+            $data = new stdClass();
+        }
+
+        return $data;
     }
 
     /**
@@ -115,30 +129,20 @@ trait SerializableTrait
         return $data;
     }
 
-    private function _getSerializedValue($value, int $depth, array $except) {
+    private function _getSerializedValue($value, int $depth, array $except, bool $emptyObjectsAsStdClass = false) {
         if (is_array($value)) {
-            return array_map(
-                fn (mixed $element): mixed => $this->evaluateAttribute($element, $depth - 1, $except),
-                $value,
-            );
+            $subData = [];
+            foreach ($value as $subKey => $element) {
+                $subData[$subKey] = $this->_getSerializedValue($element, $depth - 1, $except, $emptyObjectsAsStdClass);
+            }
+            return $subData;
         }
 
-        return $this->evaluateAttribute($value, $depth, $except);
+        return $this->evaluateAttribute($value, $depth, $except, $emptyObjectsAsStdClass);
     }
 
-    private function evaluateAttribute($attribute, int $depth, array $except)
+    private function evaluateAttribute($attribute, int $depth, array $except, bool $emptyObjectsAsStdClass)
     {
-        if ($depth < 0) {
-            return null;
-        }
-
-        if (is_array($attribute)) {
-            return array_map(
-                fn (mixed $element): mixed => $this->evaluateAttribute($element, $depth - 1, $except),
-                $attribute,
-            );
-        }
-
         if (!is_object($attribute)) {
             return $attribute;
         }
@@ -147,13 +151,19 @@ trait SerializableTrait
             return (string) $attribute;
         }
 
-        return (0 >= $depth)
+        $data = (0 >= $depth)
             ? null
             : (
             method_exists($attribute, 'toArray')
                 ? $attribute->toArray($except, $depth - 1)
                 : get_object_vars($attribute)
             );
+
+        if ($data === [] && $emptyObjectsAsStdClass) {
+            $data = new stdClass();
+        }
+
+        return $data;
     }
 
     private function _getCustomSerializerMethod(string $property) {
