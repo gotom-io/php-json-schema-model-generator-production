@@ -41,7 +41,7 @@ class InvalidConstDetailedException extends ValidationException
         );
 
         parent::__construct(
-            "Invalid value for $propertyName declined by const constraint. Given: " . $providedValueEncoded . ' expected: ' . $expectedValueEncoded,
+            "Invalid value for `$propertyName` declined by const constraint. Given: `" . $providedValueEncoded . '` expected: `' . $expectedValueEncoded . '`',
             $propertyName,
             $providedValue
         );
