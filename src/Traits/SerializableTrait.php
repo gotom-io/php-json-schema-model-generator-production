@@ -41,8 +41,7 @@ trait SerializableTrait
     /**
      * Return a JSON serializable representation of the current state
      */
-    #[\ReturnTypeWillChange]
-    public function jsonSerialize(array $except = [])
+    public function jsonSerialize(array $except = []): mixed
     {
         return $this->_getValues(512, $except, true);
     }
