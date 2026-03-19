@@ -104,11 +104,11 @@ trait SerializableTrait
             }
 
             if ($customSerializer = $this->_getCustomSerializerMethod($key)) {
-                $modelData[$jsonKey] = $this->_getSerializedValue($this->{$customSerializer}(), $depth, $except, $emptyObjectsAsStdClass);
+                $modelData[$jsonKey] = $this->_getSerializedValue($this->{$customSerializer}(), $depth, [], $emptyObjectsAsStdClass);
                 continue;
             }
 
-            $modelData[$jsonKey] = $this->_getSerializedValue($property->getValue($this), $depth, $except, $emptyObjectsAsStdClass);
+            $modelData[$jsonKey] = $this->_getSerializedValue($property->getValue($this), $depth, [], $emptyObjectsAsStdClass);
         }
 
         $data = $this->resolveSerializationHook($modelData, $depth, $except);
