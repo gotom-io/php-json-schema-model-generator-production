@@ -21,7 +21,7 @@ class EnumException extends ValidationException
     public function __construct($providedValue, string $propertyName, protected array $allowedValues)
     {
         parent::__construct(
-            "Invalid value for $propertyName declined by enum constraint",
+            "Invalid value for property: '$propertyName' declined by enum constraint, allowed values: [" . implode(', ', $this->allowedValues ). ']',
             $propertyName,
             $providedValue
         );

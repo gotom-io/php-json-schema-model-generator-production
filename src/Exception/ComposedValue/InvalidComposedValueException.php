@@ -57,7 +57,12 @@ abstract class InvalidComposedValueException extends ValidationException
                             ? ": Failed\n    * " .
                                 implode(
                                     "\n    * ",
-                                    array_map(fn(ValidationException $exception): string => $exception->getMessage(), $exception->getErrors())
+                                    array_map(function(ValidationException $exception): string {
+                                        $message = $exception->getMessage();
+                                        if(!is_array($exception->getProvidedValue())){
+                                            $message = !str_contains($message, ' provided value') ? $message . ' provided value: \'' . $exception->getProvidedValue() . '\'' : $message;
+                                        }
+                                        return $message;}, $exception->getErrors())
                                 )
                             : ': Valid'
                         );

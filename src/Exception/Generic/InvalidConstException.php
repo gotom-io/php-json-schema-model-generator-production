@@ -22,7 +22,7 @@ class InvalidConstException extends ValidationException
     public function __construct($providedValue, string $propertyName, protected $expectedValue)
     {
         parent::__construct(
-            "Invalid value for $propertyName declined by const constraint, must be: " . $expectedValue,
+            "Invalid value for property: '$propertyName' declined by const constraint, must be: " . 'type: ' . gettype($expectedValue) . ' value: ' . (is_string($expectedValue) ? "'$expectedValue'" : $this->expectedValue),
             $propertyName,
             $providedValue
         );
