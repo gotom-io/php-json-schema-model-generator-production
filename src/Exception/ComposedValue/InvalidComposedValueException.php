@@ -47,7 +47,7 @@ abstract class InvalidComposedValueException extends ValidationException
     {
         $compositionIndex = 0;
 
-        return "Invalid value for $propertyName declined by composition constraint.\n  " .
+        return "Invalid value for '$propertyName' declined by composition constraint.\n  " .
             sprintf(static::COMPOSED_ERROR_MESSAGE, $this->succeededCompositionElements) .
             array_reduce(
                 $this->compositionErrorCollection,
@@ -59,8 +59,10 @@ abstract class InvalidComposedValueException extends ValidationException
                                     "\n    * ",
                                     array_map(function(ValidationException $exception): string {
                                         $message = $exception->getMessage();
-                                        if(!is_array($exception->getProvidedValue())){
-                                            $message = !str_contains($message, ' provided value') ? $message . ' provided value: \'' . $exception->getProvidedValue() . '\'' : $message;
+                                        $providedValue = $exception->getProvidedValue();
+                                        $providedValue = $providedValue instanceof \BackedEnum ? $providedValue->value : $providedValue;
+                                        if(!is_array($providedValue && is_scalar($providedValue))){
+                                            $message = !str_contains($message, ' provided value') ? $message . ' provided value: \'' . $providedValue . '\'' : $message;
                                         }
                                         return $message;}, $exception->getErrors())
                                 )
