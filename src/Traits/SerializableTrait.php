@@ -57,7 +57,7 @@ trait SerializableTrait
             return false;
         }
 
-        return json_encode($this->getValues($depth, $except, true), $options, $depth);
+        return json_encode($this->_getValues($depth, $except, true), $options, $depth);
     }
 
     /**
@@ -66,7 +66,7 @@ trait SerializableTrait
     #[\ReturnTypeWillChange]
     public function jsonSerialize(array $except = [])
     {
-        return $this->getValues(512, $except, true);
+        return $this->_getValues(512, $except, true);
     }
 
     /**
@@ -84,7 +84,7 @@ trait SerializableTrait
             return false;
         }
 
-        return $this->getValues($depth, $except, false);
+        return $this->_getValues($depth, $except, false);
     }
 
     /**
@@ -99,7 +99,7 @@ trait SerializableTrait
      *
      * @return array|stdClass
      */
-    private function getValues(int $depth, array $except, bool $emptyObjectsAsStdClass)
+    private function _getValues(int $depth, array $except, bool $emptyObjectsAsStdClass)
     {
         $depth--;
         $modelData = [];
